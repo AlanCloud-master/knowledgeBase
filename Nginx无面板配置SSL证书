@@ -1,0 +1,220 @@
+1.ssh远程链接服务器
+2.执行
+ps -ef|grep nginx
+
+3.执行
+cd /etc/nginx/
+执行
+ls
+4.执行
+whereis nginx
+5.执行
+cd /home/nginx
+执行
+ls
+6.执行
+cd conf
+执行
+ls
+7.执行
+cat nginx.conf
+返回：
+[root@iZ2zeat7h1bz9nhlrekwjzZ conf]# cat nginx.conf
+
+user  nobody;
+worker_processes  8;
+
+error_log  logs/error.log;
+error_log  logs/error.log  notice;
+error_log  logs/error.log  info;
+
+pid        logs/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+'$status $body_bytes_sent "$http_referer" '
+'"$http_user_agent" "$http_x_forwarded_for"';
+
+access_log  logs/access.log  main;
+
+    sendfile        on;
+tcp_nopush     on;
+
+keepalive_timeout  0;
+    keepalive_timeout  65;
+    proxy_buffer_size   16k;
+    proxy_buffers    4 16k;
+    gzip  on;
+    limit_req_zone $binary_remote_addr zone=allips:10m rate=500r/s;
+    client_max_body_size    5000m;
+    limit_conn_zone $binary_remote_addr zone=one:10m;
+    limit_conn one 100;
+    limit_rate_after 10000k;
+    limit_rate 500k;
+    server {
+        listen       80;
+        server_name  localhost;
+
+charset koi8-r;
+
+access_log  logs/host.access.log  main;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+
+error_page  404              /404.html;
+
+redirect server error pages to the static page /50x.html
+
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+proxy the PHP scripts to Apache listening on 127.0.0.1:80
+
+location ~ \.php$ {
+proxy_pass   http://127.0.0.1;
+}
+
+pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+
+location ~ \.php$ {
+root           html;
+fastcgi_pass   127.0.0.1:9000;
+fastcgi_index  index.php;
+fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+include        fastcgi_params;
+}
+
+deny access to .htaccess files, if Apache's document root
+concurs with nginx's one
+
+location ~ /\.ht {
+deny  all;
+}
+    }
+
+
+another virtual host using mix of IP-, name-, and port-based configuration
+
+server {
+listen       8000;
+listen       somename:8080;
+server_name  somename  alias  another.alias;
+
+location / {
+root   html;
+index  index.html index.htm;
+}
+}
+
+
+HTTPS server
+
+server {
+listen       443 ssl;
+server_name  localhost;
+
+ssl_certificate      cert.pem;
+ssl_certificate_key  cert.key;
+
+ssl_session_cache    shared:SSL:1m;
+ssl_session_timeout  5m;
+
+ssl_ciphers  HIGH:!aNULL:!MD5;
+ssl_prefer_server_ciphers  on;
+
+location / {
+root   html;
+index  index.html index.htm;
+}
+}
+ include vhost/*.conf;
+}
+[root@iZ2zeat7h1bz9nhlrekwjzZ conf]#
+
+
+8.执行
+cd vhost
+执行
+ls
+
+9.执行
+cat aib_axiangxue_com_https.conf
+返回：
+[root@iZ2zeat7h1bz9nhlrekwjzZ vhost]# cat aib_axiangxue_com_https.conf
+server {
+     listen 443 ssl;
+     server_name aib.axiangxue.com;
+     
+ssl on;
+     root html;
+     index index.html index.htm;
+        ssl_certificate   /home/nginx/ssl/aib2.pem;
+        ssl_certificate_key  /home/nginx/ssl/aib2.key;
+        ssl_session_timeout 5m;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+        ssl_prefer_server_ciphers on;
+
+        access_log /var/log/nginx/access_aic.axiangxue.com.log;
+        error_log /var/log/nginx/error_aic.axiangxue.com.log;
+
+ location /sntech/M00 {
+            ngx_fastdfs_module;
+        }
+
+
+        location ~ ^/(image|javascript|js|css|flash|media|html|json)/ {
+                root /home/nginx;
+                expires 30d;
+         }
+ 
+ location /aib_mer/ {
+         return 301 https://aib.axiangxue.com/aib_mera/$query_string;
+ }  
+
+ location /aib_mera/ {
+                index index.html;
+                root /home/webapps;
+        }
+ 
+ location /aib_plat/ {
+                index index.html;
+                root /home/webapps;
+        } 
+
+ location /aib {
+limit_req zone=allips burst=5 nodelay;
+
+                proxy_pass        http://aib_api;
+                proxy_set_header   Host             $host;
+                proxy_set_header   X-Real-IP        $remote_addr;
+                proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+                proxy_pass_header Set-Cookie;
+
+        }
+}
+[root@iZ2zeat7h1bz9nhlrekwjzZ vhost]#
+
+10. 找到你要配置ssl的域名和相关路径
+例如：
+ index index.html index.htm;
+        ssl_certificate   /home/nginx/ssl/aib2.pem;
+        ssl_certificate_key  /home/nginx/ssl/aib2.key;
+        ssl_session_timeout 5m;
+
+11.把之前的这两个文件备份替换一下
+12.替换完成之后执行：
+/home/nginx/sbin/nginx -s reload
+完成！！！🤗
